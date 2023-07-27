@@ -3,7 +3,8 @@ import os
 import numpy as np
 import pygame
 
-from car_physic import CarPhysic, Chassis
+from car_physic import CarPhysic
+from car_physic.piece.chassis import Chassis
 
 SCREEN_TITLE = "Car demo physic"
 SCREEN_SIZE = 640, 480
