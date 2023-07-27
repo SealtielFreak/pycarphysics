@@ -10,6 +10,7 @@ SCREEN_SIZE = 640, 480
 DEFAULT_FRAME_RATE = 120
 CAR_IMAGE_FILENAME = "assets/car_image.png"
 
+
 if __name__ == '__main__':
     pygame.init()
     pygame.display.set_caption(SCREEN_TITLE)
