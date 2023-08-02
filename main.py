@@ -3,7 +3,10 @@ import os
 import numpy as np
 import pygame
 
-from car_physic import CarPhysic, Chassis
+from carphysic import Vehicle
+from carphysic.components import Chassis
+from carphysic.controls import ControllerInput
+
 
 SCREEN_TITLE = "Car demo physic"
 SCREEN_SIZE = 640, 480
@@ -27,10 +30,8 @@ if __name__ == '__main__':
     car_image = pygame.transform.smoothscale(car_image, (car_image.get_width() // 24, car_image.get_height() // 24))
     car_image_size = car_image.get_rect()
 
-    chassis = Chassis(4, np.array(car_image.get_rect().size, dtype=np.float32), np.array([0, 0], dtype=np.float32), 15)
-    car_physic = CarPhysic(chassis)
-
-    ppu = 1
+    chassis = Chassis(24, np.array(car_image.get_rect().size, dtype=np.float32), 2500)
+    car_physic = Vehicle(chassis)
 
     while not running:
         for event in pygame.event.get():
@@ -38,10 +39,13 @@ if __name__ == '__main__':
                 running = True
 
         pressed = pygame.key.get_pressed()
-        throttle = pressed[pygame.K_w] - pressed[pygame.K_s]
-        brake = pressed[pygame.K_SPACE]
-        steering = pressed[pygame.K_d] - pressed[pygame.K_a]
-        position, angle = car_physic.process(dt, throttle, brake, steering)
+        controls = ControllerInput(
+            pressed[pygame.K_w] - pressed[pygame.K_s],
+            pressed[pygame.K_a] - pressed[pygame.K_d],
+            pressed[pygame.K_SPACE]
+        )
+
+        position, angle = car_physic.update(dt, controls)
 
         screen.fill((255, 255, 255))
 
