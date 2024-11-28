@@ -1,1 +1,2 @@
-# car_physic.py
+# Car Physic
+Basic Vehicle Physics Library in Python

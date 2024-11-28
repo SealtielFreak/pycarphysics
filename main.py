@@ -5,6 +5,7 @@ import pygame
 
 from car_physic import CarPhysic
 from car_physic.piece.chassis import Chassis
+from car_physic.piece.steering import Steering
 
 SCREEN_TITLE = "Car demo physic"
 SCREEN_SIZE = 640, 480
@@ -28,8 +29,8 @@ if __name__ == '__main__':
     car_image = pygame.transform.smoothscale(car_image, (car_image.get_width() // 24, car_image.get_height() // 24))
     car_image_size = car_image.get_rect()
 
-    chassis = Chassis(4, np.array(car_image.get_rect().size, dtype=np.float32), np.array([0, 0], dtype=np.float32), 15)
-    car_physic = CarPhysic(chassis)
+    chassis = Chassis(1.2, np.array(car_image.get_rect().size, dtype=np.float32), np.array([0, 0], dtype=np.float32), 15)
+    car_physic = CarPhysic(chassis, steering=Steering(100, 5**10))
 
     ppu = 1
 
