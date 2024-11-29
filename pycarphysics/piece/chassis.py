@@ -1,5 +1,7 @@
 import dataclasses
+
 import numpy as np
+
 
 @dataclasses.dataclass
 class Chassis:
@@ -8,3 +10,4 @@ class Chassis:
     position: np.ndarray
     mass: float
     angle: float = 0.0
+
