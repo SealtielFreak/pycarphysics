@@ -4,8 +4,8 @@ import numpy as np
 import pygame
 
 from pycarphysics import CarPhysic
-from pycarphysics.collisions import get_local_transform, get_mead_vertices, get_vertex_from_rect
-from pycarphysics.collisions.shapes import Rectangle, Vertex2
+from pycarphysics.collisions.low import collide
+from pycarphysics.collisions.shapes import SquareShape, RectangleShape, PolygonShape
 from pycarphysics.piece.chassis import Chassis
 from pycarphysics.piece.steering import Steering
 
@@ -13,6 +13,28 @@ SCREEN_TITLE = "Car demo physic"
 SCREEN_SIZE = 640, 480
 DEFAULT_FRAME_RATE = 120
 CAR_IMAGE_FILENAME = "assets/car_image.png"
+
+
+def filter_collisions(entity, others):
+    for other in others:
+        is_collide, move_collide = collide(entity.points, other.points)
+
+        if is_collide:
+            yield is_collide, move_collide
+
+
+def process_collision(entity: CarPhysic, a: PolygonShape, b: PolygonShape, impulse: int = 5):
+    is_collide, move_collide = collide(a.points, b.points)
+
+    if is_collide:
+        a.translate(move_collide)
+
+        entity.chassis.position += move_collide / impulse
+        entity.motor.acceleration *= 0 / 10000
+        entity.velocity[0] = 0
+        entity.velocity[1] = 0
+
+    return entity, a
 
 if __name__ == '__main__':
     pygame.init()
@@ -30,15 +52,22 @@ if __name__ == '__main__':
     car_image = pygame.transform.smoothscale(car_image, (car_image.get_width() // 24, car_image.get_height() // 24))
     car_image_size = car_image.get_rect()
 
-    rect = Rectangle(
+    rect = RectangleShape(
         (40, 15), color=(0, 0, 255)
     )
+
+    box0 = SquareShape(80, color=(255, 0, 0))
+    box0.position = (100, 100)
 
     chassis = Chassis(
         1.2, np.array(car_image.get_rect().size, dtype=np.float32), np.array([0, 0], dtype=np.float32), 15
     )
+
     car_physic = CarPhysic(chassis, steering=Steering(100, 5 ** 10))
 
+    box1 = SquareShape(120, color=(0, 255, 0))
+    box1.position = (350, 250)
+    box1.scale((2, 2))
 
     while not running:
         for event in pygame.event.get():
@@ -51,17 +80,27 @@ if __name__ == '__main__':
         steering = pressed[pygame.K_d] - pressed[pygame.K_a]
         position, angle = car_physic.process(dt, throttle, brake, steering)
 
+        diff_angle = rect.angle - angle
+
+        rect.angle = -angle
+        rect.position = position
+
+        box1.rotate(0.025 * dt)
+
+        for box in (box0, box1):
+            process_collision(car_physic, rect, box, 10)
+
         screen.fill((255, 255, 255))
         car_image_rotate = pygame.transform.rotate(car_image, angle)
         car_image_size = car_image_rotate.get_rect()
 
-        rect.angle = angle
-        rect.position = Vertex2[position]
-
         pygame.draw.polygon(screen, rect.color, rect.points)
+        pygame.draw.polygon(screen, box0.color, box0.points)
+        pygame.draw.polygon(screen, box1.color, box1.points)
         screen.blit(car_image_rotate, position - (car_image_size.width / 2, car_image_size.height / 2))
+
         pygame.display.update()
 
         dt = clock.tick(DEFAULT_FRAME_RATE)
 
-pygame.quit()
+    pygame.quit()
