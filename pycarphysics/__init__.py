@@ -3,38 +3,49 @@ import typing
 
 import numpy as np
 
-import pycarphysics.piece.brakes
-import pycarphysics.piece.chassis
-import pycarphysics.piece.motor
-import pycarphysics.piece.steering
+from pycarphysics.collisions.shapes import PolygonShape
+from pycarphysics.piece.brakes import Brakes
+from pycarphysics.piece.chassis import Chassis
+from pycarphysics.piece.motor import Motor
+from pycarphysics.piece.steering import Steering
+from pycarphysics.transform import rotation
 
-DEFAULT_GENERIC_MOTOR = pycarphysics.piece.motor.Motor(1 / 1000_000_00, 2 / 1000_000_000, 1 / 5, 1 / 100)
-DEFAULT_GENERIC_BRAKES = pycarphysics.piece.brakes.Brakes(1 / 100000, 1 / 50000, 1 / 200000)
-DEFAULT_GENERIC_STEERING = pycarphysics.piece.steering.Steering(120, 80)
-
-
-def rotate_vector(vector: np.ndarray | list | tuple[int, int], radians: int | float) -> np.ndarray:
-    rotation = np.array([[np.cos(radians), -np.sin(radians)],
-                         [np.sin(radians), np.cos(radians)]])
-
-    return np.dot(rotation, vector)
+DEFAULT_GENERIC_MOTOR = Motor(1 / 1000_000_00, 2 / 1000_000_000, 1 / 5, 1 / 100)
+DEFAULT_GENERIC_BRAKES = Brakes(1 / 100000, 1 / 50000, 1 / 200000)
+DEFAULT_GENERIC_STEERING = Steering(120, 80)
 
 
-class CarPhysic:
-    def __init__(self, chassis: pycarphysics.piece.chassis.Chassis, motor=DEFAULT_GENERIC_MOTOR,
-                 brakes=DEFAULT_GENERIC_BRAKES,
-                 steering=DEFAULT_GENERIC_STEERING):
+class VehicleEntity:
+    def __init__(self,
+                 chassis: Chassis,
+                 collider: PolygonShape,
+                 motor: Motor = DEFAULT_GENERIC_MOTOR,
+                 brakes: Brakes = DEFAULT_GENERIC_BRAKES,
+                 steering: Steering = DEFAULT_GENERIC_STEERING):
         self.velocity: np.ndarray = np.array([0, 0], dtype=np.float32)
         self.force: np.ndarray = np.array([0, 0], dtype=np.float32)
         self.angular_velocity = 0
 
-        self.chassis: pycarphysics.piece.chassis.Chassis = chassis
-        self.motor: pycarphysics.piece.motor.Motor = motor
-        self.brakes: pycarphysics.piece.brakes.Brakes = brakes
-        self.steering: pycarphysics.piece.steering.Steering = steering
+        self.chassis = chassis
+        self.motor = motor
+        self.brakes = brakes
+        self.steering = steering
+        self.__collider = collider
 
-    def process(self, dt: float, throttle: int | float, brake_hand: bool, steering: int | float) -> typing.Tuple[
-        np.ndarray, float]:
+    @property
+    def collider(self):
+        return self.__collider
+
+    @property
+    def points(self):
+        return self.collider.points
+
+    def process(
+            self,
+            dt: float,
+            throttle: int | float,
+            brake_hand: bool,
+            steering: int | float) -> typing.Tuple[np.ndarray, float]:
         ppu = 32
 
         if throttle != 0:
@@ -94,11 +105,19 @@ class CarPhysic:
                 self.angular_velocity += math.copysign(0.0025, self.angular_velocity) + self.motor.acceleration
 
         if abs(self.motor.acceleration * self.chassis.mass) > self.motor.max_acceleration * 0.05:
-            self.velocity += (0, self.angular_velocity + math.copysign(self.motor.acceleration * self.chassis.mass,
-                                                                       self.angular_velocity))
-            print(self.angular_velocity, self.motor.acceleration * self.chassis.mass, self.velocity)
+            self.velocity += (0, self.angular_velocity + math.copysign(
+                self.motor.acceleration * self.chassis.mass,
+                self.angular_velocity
+            ))
 
-        self.chassis.position += rotate_vector(self.velocity, math.radians(-self.chassis.angle)) * dt
+        position = self.chassis.position * ppu
+
+        r = math.radians(-self.chassis.angle)
+
+        self.chassis.position += np.dot(rotation(r), self.velocity) * dt
         self.chassis.angle += math.degrees(self.angular_velocity) * dt
 
-        return self.chassis.position * ppu, self.chassis.angle
+        self.__collider.angle = -self.chassis.angle
+        self.__collider.position = position
+
+        return position, self.chassis.angle
