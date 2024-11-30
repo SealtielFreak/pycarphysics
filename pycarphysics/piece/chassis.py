@@ -10,4 +10,3 @@ class Chassis:
     position: np.ndarray
     mass: float
     angle: float = 0.0
-
