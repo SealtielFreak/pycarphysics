@@ -4,7 +4,11 @@ import numpy as np
 
 
 class Shape(abc.ABC):
-    pass
+    def scale(self, axis): ...
+
+    def translate(self, axis): ...
+
+    def rotate(self, angle): ...
 
 
 class PolygonShape(Shape):
