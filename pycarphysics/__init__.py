@@ -31,6 +31,7 @@ class VehicleEntity:
         self.brakes = brakes
         self.steering = steering
         self.__collider = collider
+        self.__ppu = 32
 
     @property
     def collider(self):
@@ -40,13 +41,16 @@ class VehicleEntity:
     def points(self):
         return self.collider.points
 
+    @property
+    def ppu(self):
+        return self.__ppu
+
     def process(
             self,
             dt: float,
             throttle: int | float,
             brake_hand: bool,
             steering: int | float) -> typing.Tuple[np.ndarray, float]:
-        ppu = 32
 
         if throttle != 0:
             if throttle > 0:
@@ -110,7 +114,7 @@ class VehicleEntity:
                 self.angular_velocity
             ))
 
-        position = self.chassis.position * ppu
+        position = self.chassis.position * self.ppu
 
         r = math.radians(-self.chassis.angle)
 

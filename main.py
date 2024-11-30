@@ -15,26 +15,56 @@ DEFAULT_FRAME_RATE = 120
 CAR_IMAGE_FILENAME = "assets/car_image.png"
 
 
-def filter_collisions(entity, others):
+def filter_all_collisions(entity: VehicleEntity, others: list[PolygonShape] | tuple[PolygonShape, ...]):
     for other in others:
-        is_collide, move_collide = collide(entity.points, other.points)
+        is_collide, move = collide(entity.points, other.points)
 
         if is_collide:
-            yield is_collide, move_collide
+            yield other, move
 
 
-def process_collision(entity: VehicleEntity, a: PolygonShape, b: PolygonShape, impulse: int = 5):
-    is_collide, move_collide = collide(a.points, b.points)
+def slide(entity: VehicleEntity, other: PolygonShape, move: np.ndarray, **kwargs):
+    force = kwargs.get("force", 0.35)
+    deceleration = kwargs.get("deceleration", 0.25)
 
-    if is_collide:
-        a.translate(move_collide)
+    entity.collider.translate(move)
 
-        entity.chassis.position += move_collide / impulse
-        entity.motor.acceleration *= 0 / 10000
-        entity.velocity[0] = 0
-        entity.velocity[1] = 0
+    entity.chassis.position += move / entity.ppu
+    entity.motor.acceleration *= -deceleration
+    entity.velocity[0] *= -1 * force
+    entity.velocity[1] *= -1 * force
 
-    return entity, a
+    return entity, other
+
+
+def bounce(entity: VehicleEntity, other: PolygonShape, move: np.ndarray, **kwargs):
+    force = kwargs.get("force", 0.35)
+
+    entity.collider.translate(move)
+
+    entity.chassis.position += move / entity.ppu
+
+    entity.velocity[0] *= -1 * force
+    entity.velocity[1] *= -1 * force
+
+    return entity, other
+
+
+def push(entity: VehicleEntity, other: PolygonShape, move: np.ndarray, **kwargs):
+    force = kwargs.get("force", 0.95)
+    deceleration = kwargs.get("deceleration", 0.05)
+
+    entity.collider.translate(move)
+
+    entity.chassis.position += move / entity.ppu
+    entity.motor.acceleration *= deceleration
+
+    other.translate(-move)
+
+    entity.velocity[0] *= force
+    entity.velocity[1] *= force
+
+    return entity, other
 
 
 if __name__ == '__main__':
@@ -84,8 +114,8 @@ if __name__ == '__main__':
 
         box1.rotate(0.025 * dt)
 
-        for box in (box0, box1):
-            process_collision(entity, entity.collider, box, 10)
+        for box, move in filter_all_collisions(entity, (box0, box1)):
+            entity, box = push(entity, box, move)
 
         screen.fill((255, 255, 255))
         car_image_rotate = pygame.transform.rotate(car_image, angle)
