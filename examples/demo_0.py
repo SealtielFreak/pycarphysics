@@ -4,7 +4,7 @@ import numpy as np
 import pygame
 
 from pycarphysics.collisions import filter_all_collisions, collide
-from pycarphysics.collisions.response import push
+from pycarphysics.collisions.response import push, bounce, slide
 from pycarphysics.collisions.shapes import SquareShape, RectangleShape
 from pycarphysics.entities import VehicleEntity
 from pycarphysics.entities.chassis import Chassis
@@ -12,6 +12,7 @@ from pycarphysics.entities.steering import Steering
 
 SCREEN_TITLE = "Demo Pycarphysics"
 SCREEN_SIZE = 640, 480
+DEFAULT_OFFSET_CAMERA = np.array(SCREEN_SIZE) // 2
 DEFAULT_FRAME_RATE = 120
 CAR_IMAGE_FILENAME = "assets/car_image.png"
 
@@ -54,6 +55,8 @@ if __name__ == '__main__':
     advert.position = (50, 15 / 2)
     advert_color = (255, 0, 255)
 
+    camera_translate = np.array([20, 0], dtype=np.float64)
+
     while not running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -72,7 +75,7 @@ if __name__ == '__main__':
 
         entities = {
             box0: 'obstacle',
-            box1: 'obstacle',
+            box1: 'wall',
             advert: 'sensor',
         }
 
@@ -82,8 +85,11 @@ if __name__ == '__main__':
             if not is_collide:
                 continue
 
-            if type_col == 'obstacle':
-                entity, _ = push(entity, other, move)
+            match type_col:
+                case 'wall':
+                    entity, _ = slide(entity, other, move)
+                case 'obstacle':
+                    entity, _ = push(entity, other, move)
 
         advert.translate(entity.collider.position - last_position)
         advert.rotate((entity.collider.angle - advert.angle) * -1, entity.collider.origin)
@@ -100,12 +106,14 @@ if __name__ == '__main__':
         car_image_rotate = pygame.transform.rotate(car_image, angle)
         car_image_size = car_image_rotate.get_rect()
 
-        pygame.draw.polygon(screen, (0, 255, 0), entity.points)
-        pygame.draw.polygon(screen, (0, 0, 255), box0.points)
-        pygame.draw.polygon(screen, (255, 0, 0), box1.points)
-        pygame.draw.polygon(screen, advert_color, advert.points)
+        camera_translate = -entity.collider.position + DEFAULT_OFFSET_CAMERA
 
-        screen.blit(car_image_rotate, position - (car_image_size.width / 2, car_image_size.height / 2))
+        pygame.draw.polygon(screen, (0, 255, 0), entity.points + camera_translate)
+        pygame.draw.polygon(screen, (0, 0, 255), box0.points + camera_translate)
+        pygame.draw.polygon(screen, (255, 0, 0), box1.points + camera_translate)
+        pygame.draw.polygon(screen, advert_color, advert.points + camera_translate)
+
+        screen.blit(car_image_rotate, (position - (car_image_size.width / 2, car_image_size.height / 2)) + camera_translate)
 
         pygame.display.update()
 
