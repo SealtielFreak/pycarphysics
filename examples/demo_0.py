@@ -3,14 +3,14 @@ import os
 import numpy as np
 import pygame
 
-from pycarphysics.collisions import filter_all_collisions
+from pycarphysics.collisions import filter_all_collisions, collide
 from pycarphysics.collisions.response import push
 from pycarphysics.collisions.shapes import SquareShape, RectangleShape
 from pycarphysics.entities import VehicleEntity
 from pycarphysics.entities.chassis import Chassis
 from pycarphysics.entities.steering import Steering
 
-SCREEN_TITLE = "Car demo physic"
+SCREEN_TITLE = "Demo Pycarphysics"
 SCREEN_SIZE = 640, 480
 DEFAULT_FRAME_RATE = 120
 CAR_IMAGE_FILENAME = "assets/car_image.png"
@@ -50,10 +50,17 @@ if __name__ == '__main__':
         steering=Steering(100, 5 ** 10)
     )
 
+    advert = RectangleShape((20, 15))
+    advert.position = (50, 15 / 2)
+    advert_color = (255, 0, 255)
+
     while not running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = True
+
+        last_position = entity.collider.position
+        last_angle = entity.collider.angle
 
         pressed = pygame.key.get_pressed()
         throttle = pressed[pygame.K_w] - pressed[pygame.K_s]
@@ -63,8 +70,31 @@ if __name__ == '__main__':
 
         box1.rotate(0.025 * dt)
 
-        for box, move in filter_all_collisions(entity, (box0, box1)):
-            entity, _ = push(entity, box, move)
+        entities = {
+            box0: 'obstacle',
+            box1: 'obstacle',
+            advert: 'sensor',
+        }
+
+        for other, type_col in entities.items():
+            is_collide, move = collide(entity.points, other.points)
+
+            if not is_collide:
+                continue
+
+            if type_col == 'obstacle':
+                entity, _ = push(entity, other, move)
+
+        advert.translate(entity.collider.position - last_position)
+        advert.rotate((entity.collider.angle - advert.angle) * -1, entity.collider.origin)
+
+        advert_color = (255, 0, 255)
+        for other in (box0, box1):
+            is_collide, move = collide(advert.points, other.points)
+
+            if is_collide:
+                advert_color = (0, 255, 255)
+
 
         screen.fill((255, 255, 255))
         car_image_rotate = pygame.transform.rotate(car_image, angle)
@@ -73,6 +103,8 @@ if __name__ == '__main__':
         pygame.draw.polygon(screen, (0, 255, 0), entity.points)
         pygame.draw.polygon(screen, (0, 0, 255), box0.points)
         pygame.draw.polygon(screen, (255, 0, 0), box1.points)
+        pygame.draw.polygon(screen, advert_color, advert.points)
+
         screen.blit(car_image_rotate, position - (car_image_size.width / 2, car_image_size.height / 2))
 
         pygame.display.update()
