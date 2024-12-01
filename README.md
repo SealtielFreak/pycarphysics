@@ -1,6 +1,11 @@
 # pycarphysics
 
-Core collision systems and vehicle physics library for Python
+Core collision systems and vehicle physics library for Python.
+
+## Installation
+```
+pip install git+https://github.com/SealtielFreak/pycarphysics.git
+```
 
 # References
 
