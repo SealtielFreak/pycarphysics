@@ -1,5 +1,4 @@
 # pycarphysics
-
 Core collision systems and vehicle physics library for Python.
 
 ## Installation
