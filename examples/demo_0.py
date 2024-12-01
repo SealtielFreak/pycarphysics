@@ -48,14 +48,15 @@ if __name__ == '__main__':
             15
         ),
         RectangleShape((40, 15)),
-        steering=Steering(100, 5 ** 10)
     )
 
-    advert = RectangleShape((20, 15))
+    advert = RectangleShape((60, 15))
     advert.position = (50, 15 / 2)
     advert_color = (255, 0, 255)
 
     camera_translate = np.array([20, 0], dtype=np.float64)
+
+    object_detected = False
 
     while not running:
         for event in pygame.event.get():
@@ -69,6 +70,7 @@ if __name__ == '__main__':
         throttle = pressed[pygame.K_w] - pressed[pygame.K_s]
         brake = pressed[pygame.K_SPACE]
         steering = pressed[pygame.K_d] - pressed[pygame.K_a]
+
         position, angle = entity.process(dt, throttle, brake, steering)
 
         box1.rotate(0.025 * dt)
@@ -94,12 +96,19 @@ if __name__ == '__main__':
         advert.translate(entity.collider.position - last_position)
         advert.rotate((entity.collider.angle - advert.angle) * -1, entity.collider.origin)
 
+        object_detected = False
         advert_color = (255, 0, 255)
+
         for other in (box0, box1):
             is_collide, move = collide(advert.points, other.points)
 
-            if is_collide:
-                advert_color = (0, 255, 255)
+
+            if not is_collide:
+                continue
+
+            object_detected = is_collide
+            advert_color = (0, 255, 255)
+
 
 
         screen.fill((255, 255, 255))
